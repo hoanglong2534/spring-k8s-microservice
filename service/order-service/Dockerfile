@@ -1,39 +1,11 @@
-# Multi-stage build for order-service
-FROM openjdk:21-jdk-slim as builder
+FROM openjdk:21
 
-WORKDIR /app
+ARG FILE_JAR=target/*.jar
 
-# Copy Maven files
-COPY pom.xml .
-COPY mvnw .
-COPY .mvn .mvn
+ADD ${FILE_JAR} app.jar
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline -B
+ENTRYPOINT ["java", "-jar", "/app.jar"]
 
-# Copy source code
-COPY src src
-
-# Build the application
-RUN ./mvnw clean package -DskipTests
-
-# Runtime stage
-FROM openjdk:21-jre-slim
-
-WORKDIR /app
-
-# Copy the built jar
-COPY --from=builder /app/target/*.jar app.jar
-
-# Expose port
 EXPOSE 8082
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8082/actuator/health || exit 1
-
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
-
 
 
